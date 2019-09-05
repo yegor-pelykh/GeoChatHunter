@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:location/location.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong/latlong.dart';
 
@@ -19,20 +20,38 @@ class _GeoChatHunterAppState extends State<GeoChatHunterApp>
     Tab(text: 'Map', icon: Icon(Icons.map)),
     Tab(text: 'GeoChats', icon: Icon(Icons.view_list))
   ];
-  final LatLng _startingCenter = LatLng(51.5, -0.09);
+  final LatLng _defaultPosition = LatLng(0, 0);
 
+  Location _location;
   TabController _tabController;
   MapController _mapController;
-  LatLng _centerLocation;
-  LatLng _markerLocation;
+  LatLng _centerPosition;
+  LatLng _markerPosition;
+
+  void setMarkerPosition(LatLng position) {
+    _markerPosition = position;
+  }
+
+  void setDevicePosition() async {
+    try {
+      LocationData data = await _location.getLocation();
+      LatLng position = LatLng(data.latitude, data.longitude);
+      setState(() {
+        _mapController.move(position, _mapController.zoom);
+        setMarkerPosition(position);
+      });
+    } on Exception {}
+  }
 
   @override
   void initState() {
     super.initState();
+    _location = Location();
     _tabController = TabController(vsync: this, length: _tabs.length);
     _mapController = MapController();
-    _markerLocation = _startingCenter;
-    _centerLocation = _startingCenter;
+    _centerPosition = _defaultPosition;
+    _markerPosition = _defaultPosition;
+    setDevicePosition();
   }
 
   @override
@@ -57,26 +76,25 @@ class _GeoChatHunterAppState extends State<GeoChatHunterApp>
               mapController: _mapController,
               options: MapOptions(
                   onPositionChanged: (MapPosition position, bool hasGesture) {
-                    _centerLocation = position.center;
+                    _centerPosition = position.center;
                   },
                   onTap: (LatLng location) {
                     setState(() {
-                      _markerLocation = location;
+                      setMarkerPosition(location);
                     });
                   },
-                  center: _centerLocation,
+                  center: _centerPosition,
                   zoom: 13.0),
               layers: [
                 TileLayerOptions(
                     urlTemplate: RestrictedData.urlTemplate,
-                    additionalOptions: RestrictedData.additionalOptions
-                ),
+                    additionalOptions: RestrictedData.additionalOptions),
                 MarkerLayerOptions(markers: [
                   Marker(
                       anchorPos: AnchorPos.align(AnchorAlign.top),
                       width: 50.0,
                       height: 50.0,
-                      point: _markerLocation,
+                      point: _markerPosition,
                       builder: (ctx) => Container(
                           child: Icon(Icons.location_on,
                               color: Colors.red, size: 50)))
