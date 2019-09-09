@@ -19,10 +19,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^0.1.2
+  cupertino_icons: any
+  package_info: any
+  synchronized: any
+  path_provider: any
   flutter_map: any
   latlong: any
   location: any
+  tdlib: any
 
 dev_dependencies:
   flutter_test:
