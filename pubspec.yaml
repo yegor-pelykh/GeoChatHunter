@@ -27,6 +27,7 @@ dependencies:
   latlong: any
   location: any
   tdlib: any
+  flutter_spinkit: any
 
 dev_dependencies:
   flutter_test:

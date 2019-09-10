@@ -3,6 +3,7 @@ import 'package:location/location.dart';
 import 'package:package_info/package_info.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong/latlong.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'restricted_data.dart' as RestrictedData;
 import 'telegram_controller.dart';
 
@@ -23,7 +24,7 @@ class GeoChatHunterApp extends StatefulWidget {
     _GeoChatHunterAppState createState() => _GeoChatHunterAppState();
 }
 
-class _GeoChatHunterAppState extends State<GeoChatHunterApp> with SingleTickerProviderStateMixin {
+class _GeoChatHunterAppState extends State<GeoChatHunterApp> with TickerProviderStateMixin {
     PackageInfo _packageInfo;
     Location _location;
     TelegramController _telegramController;
@@ -109,7 +110,17 @@ class _GeoChatHunterAppState extends State<GeoChatHunterApp> with SingleTickerPr
     }
 
     Widget getProcessingPage(BuildContext context) {
-        return Scaffold();
+        return Scaffold(
+            appBar: AppBar(
+                centerTitle: true,
+                title: Text(appTitle)
+            ),
+            backgroundColor: Colors.blue,
+            body: SpinKitRipple(
+                color: Colors.white,
+                size: 100.0
+            )
+        );
     }
 
     Widget getLoginPage(BuildContext context) {
@@ -119,6 +130,7 @@ class _GeoChatHunterAppState extends State<GeoChatHunterApp> with SingleTickerPr
     Widget getMainPage(BuildContext context) {
         return Scaffold(
             appBar: AppBar(
+                centerTitle: true,
                 title: Text(appTitle),
                 bottom: TabBar(controller: _tabController, tabs: tabs)),
             body: TabBarView(

@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'restricted_data.dart' as RestrictedData;
 
 final String msgClientStarted = 'ClientStarted';
-final double updateWaitTimeout = 10.0;
+final double updateWaitTimeout = 0.0;
 
 final _platform = new MethodChannel(RestrictedData.tdChannelName);
 
@@ -62,6 +62,7 @@ class TelegramController {
                 sendRequest({
                     '@type': 'getAuthorizationState'
                 }, _checkAuthorization);
+                return;
             }
             dynamic jsonData = json.decode(data);
             switch (jsonData['@type']) {
@@ -90,7 +91,7 @@ class TelegramController {
             return;
 
         _receivingUpdates = true;
-        while (_receivingUpdates) {
+        Future.doWhile(() async {
             try {
                 String result = await _platform.invokeMethod('clientReceive', <String, Object>{
                     'client': _clientId,
@@ -98,7 +99,7 @@ class TelegramController {
                 });
                 if (result != null) {
                     Map<String, dynamic> jsonData = json.decode(result);
-                    await _lock.synchronized(() {
+                    await _lock.synchronized(() async {
                         for (int i = 0; i < _requestList.length; i++) {
                             if (_requestList[i][0] == jsonData['@extra']) {
                                 var func = _requestList[i][1];
@@ -114,7 +115,8 @@ class TelegramController {
             } on PlatformException catch (e) {
                 print(e);
             }
-        }
+            return _receivingUpdates;
+        });
     }
 
     void _stopReceive() {
@@ -152,6 +154,7 @@ class TelegramController {
                 break;
             case 'authorizationStateReady':
                 _setAuthorizationState(AuthorizationState.ready);
+                _stopReceive();
                 break;
             case 'authorizationStateWaitPhoneNumber':
             case 'authorizationStateWaitCode':
@@ -165,12 +168,11 @@ class TelegramController {
                 break;
             default:
         }
-        print(receivedData);
     }
 
     Future<void> sendRequest(Map<String, dynamic> request, Function(Map<String, dynamic>) callback) async {
         if (callback != null) {
-            await _lock.synchronized(() {
+            await _lock.synchronized(() async {
                 _requestId++;
                 request['@extra'] = _requestId.toString();
                 _requestList.add([
