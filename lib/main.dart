@@ -124,7 +124,77 @@ class _GeoChatHunterAppState extends State<GeoChatHunterApp> with TickerProvider
     }
 
     Widget getLoginPage(BuildContext context) {
-        return Scaffold();
+        return Scaffold(
+            appBar: AppBar(
+                centerTitle: true,
+                title: Text(appTitle)
+            ),
+            backgroundColor: Colors.blue,
+            body: Center(
+                child: ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.only(left: 24.0, right: 24.0),
+                    children: <Widget>[
+                        SizedBox(height: 8.0),
+                        TextFormField(
+                            autofocus: true,
+                            keyboardType: TextInputType.phone,
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: UnderlineInputBorder(
+                                    borderSide: new BorderSide(color: Colors.white),
+                                    borderRadius: new BorderRadius.circular(8),
+                                ),
+                                hintText: 'Phone',
+                                contentPadding: EdgeInsets.all(8.0)
+                            ),
+                        ),
+                        SizedBox(height: 8.0),
+                        RaisedButton(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            onPressed: () {
+
+                            },
+                            padding: EdgeInsets.all(8),
+                            color: Colors.lightBlueAccent,
+                            child: Text('Get code', style: TextStyle(color: Colors.white)),
+                        ),
+                        SizedBox(height: 8.0),
+                        TextFormField(
+                            autofocus: true,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: UnderlineInputBorder(
+                                    borderSide: new BorderSide(color: Colors.white),
+                                    borderRadius: new BorderRadius.circular(8),
+                                ),
+                                hintText: 'Code',
+                                contentPadding: EdgeInsets.all(8.0)
+                            ),
+                        ),
+                        SizedBox(height: 8.0),
+                        RaisedButton(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                            ),
+                            onPressed: () {
+
+                            },
+                            padding: EdgeInsets.all(8),
+                            color: Colors.lightBlueAccent,
+                            child: Text('Authorize', style: TextStyle(color: Colors.white)),
+                        )
+                    ],
+                )
+            )
+        );
     }
 
     Widget getMainPage(BuildContext context) {
