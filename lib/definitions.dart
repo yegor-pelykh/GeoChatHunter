@@ -1,0 +1,1 @@
+final appTitle = 'GeoChat Hunter';

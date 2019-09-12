@@ -15,7 +15,8 @@ final _platform = new MethodChannel(RestrictedData.tdChannelName);
 
 enum AuthorizationState {
     processing,
-    infoNeeded,
+    waitPhoneNumber,
+    waitCode,
     ready
 }
 
@@ -59,9 +60,9 @@ class TelegramController {
 
         _updateStreamSubscription = _updateStreamController.stream.listen((String data) {
             if (data == msgClientStarted) {
-                sendRequest({
+                sendAuthorizationRequest({
                     '@type': 'getAuthorizationState'
-                }, _checkAuthorization);
+                });
                 return;
             }
             dynamic jsonData = json.decode(data);
@@ -124,9 +125,10 @@ class TelegramController {
     }
 
     void _checkAuthorization(Map<String, dynamic> receivedData) {
-        switch (receivedData['@type']) {
+        final type = receivedData['@type'];
+        switch (type) {
             case 'authorizationStateWaitTdlibParameters':
-                sendRequest({
+                sendAuthorizationRequest({
                     '@type': 'setTdlibParameters',
                     'parameters': {
                         'use_test_dc': false,
@@ -144,28 +146,34 @@ class TelegramController {
                         'ignore_file_names': true,
                         'enable_storage_optimizer': true
                     }
-                }, _checkAuthorization);
+                });
                 break;
             case 'authorizationStateWaitEncryptionKey':
-                sendRequest({
+                sendAuthorizationRequest({
                     '@type': 'checkDatabaseEncryptionKey',
                     'encryption_key': RestrictedData.tdEncryptionKey
-                }, _checkAuthorization);
+                });
                 break;
             case 'authorizationStateReady':
                 _setAuthorizationState(AuthorizationState.ready);
                 _stopReceive();
                 break;
             case 'authorizationStateWaitPhoneNumber':
+                _setAuthorizationState(AuthorizationState.waitPhoneNumber);
+                break;
             case 'authorizationStateWaitCode':
-            case 'authorizationStateWaitPassword':
-                _setAuthorizationState(AuthorizationState.infoNeeded);
+                _setAuthorizationState(AuthorizationState.waitCode);
                 break;
             case 'ok':
-                sendRequest({
+                sendAuthorizationRequest({
                     '@type': 'getAuthorizationState'
-                }, _checkAuthorization);
+                });
                 break;
+            /*case 'authorizationStateClosed':
+                sendAuthorizationRequest({
+                    '@type': 'getAuthorizationState'
+                });
+                break;*/
             default:
         }
     }
@@ -189,6 +197,10 @@ class TelegramController {
         } on PlatformException catch (e) {
             print(e);
         }
+    }
+
+    Future<void> sendAuthorizationRequest(Map<String, dynamic> request) async {
+        return sendRequest(request, _checkAuthorization);
     }
 
     void dispose() {
