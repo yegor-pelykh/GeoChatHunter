@@ -6,12 +6,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:path_provider/path_provider.dart';
-import 'restricted_data.dart' as RestrictedData;
+import 'restricted_access_data.dart' as RestrictedAccessData;
 
 final String msgClientStarted = 'ClientStarted';
 final double updateWaitTimeout = 0.0;
 
-final _platform = new MethodChannel(RestrictedData.tdChannelName);
+final _platform = new MethodChannel(RestrictedAccessData.tdChannelName);
 
 enum AuthorizationState {
     processing,
@@ -125,6 +125,7 @@ class TelegramController {
     }
 
     void _checkAuthorization(Map<String, dynamic> receivedData) {
+        debugPrint('AUTH DATA: ' + receivedData.toString());
         final type = receivedData['@type'];
         switch (type) {
             case 'authorizationStateWaitTdlibParameters':
@@ -132,8 +133,8 @@ class TelegramController {
                     '@type': 'setTdlibParameters',
                     'parameters': {
                         'use_test_dc': false,
-                        'api_id': RestrictedData.tdAppId,
-                        'api_hash': RestrictedData.tdAppHash,
+                        'api_id': RestrictedAccessData.tdAppId,
+                        'api_hash': RestrictedAccessData.tdAppHash,
                         'device_model': 'Device',
                         'system_version': 'SysVersion',
                         'application_version': _appVersion,
@@ -151,7 +152,7 @@ class TelegramController {
             case 'authorizationStateWaitEncryptionKey':
                 sendAuthorizationRequest({
                     '@type': 'checkDatabaseEncryptionKey',
-                    'encryption_key': RestrictedData.tdEncryptionKey
+                    'encryption_key': RestrictedAccessData.tdEncryptionKey
                 });
                 break;
             case 'authorizationStateReady':
@@ -169,11 +170,12 @@ class TelegramController {
                     '@type': 'getAuthorizationState'
                 });
                 break;
-            /*case 'authorizationStateClosed':
-                sendAuthorizationRequest({
-                    '@type': 'getAuthorizationState'
-                });
-                break;*/
+            case 'authorizationStateLoggingOut':
+                break;
+            case 'authorizationStateClosing':
+                break;
+            case 'authorizationStateClosed':
+                break;
             default:
         }
     }

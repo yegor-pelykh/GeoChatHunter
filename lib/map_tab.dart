@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:location/location.dart';
 import 'package:latlong/latlong.dart';
-import 'restricted_data.dart' as RestrictedData;
+import 'restricted_access_data.dart' as RestrictedAccessData;
 
 final LatLng startPosition = LatLng(0, 0);
 final double startZoom = 12.0;
@@ -70,8 +70,8 @@ class _MapTabState extends State<MapTab> {
             ),
             layers: [
                 TileLayerOptions(
-                    urlTemplate: RestrictedData.mapUrlTemplate,
-                    additionalOptions: RestrictedData.mapAdditionalOptions),
+                    urlTemplate: RestrictedAccessData.mapUrlTemplate,
+                    additionalOptions: RestrictedAccessData.mapAdditionalOptions),
                 MarkerLayerOptions(markers: [
                     Marker(
                         anchorPos: AnchorPos.align(AnchorAlign.top),
