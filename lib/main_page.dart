@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geochat_hunter/definitions.dart' as Definitions;
 import 'package:geochat_hunter/map_tab.dart';
 import 'package:geochat_hunter/geochats_tab.dart';
-import 'definitions.dart' as Definitions;
 
 final List<Tab> tabs = [
     Tab(text: 'Map', icon: Icon(Icons.map)),
@@ -39,7 +39,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                 physics: NeverScrollableScrollPhysics(),
                 children: [
                     MapTab(),
-                    GeoChatsTab()
+                    GeochatsTab()
                 ],
             ),
         );
@@ -47,7 +47,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
     @override
     void dispose() {
-        _tabController.dispose();
         super.dispose();
     }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'definitions.dart' as Definitions;
+import 'package:geochat_hunter/definitions.dart' as Definitions;
 
 class ProcessingPage extends StatefulWidget {
     const ProcessingPage({Key key}) : super(key: key);

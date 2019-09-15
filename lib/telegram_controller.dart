@@ -4,14 +4,20 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:geochat_hunter/package_info_controller.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:path_provider/path_provider.dart';
-import 'restricted_access_data.dart' as RestrictedAccessData;
+import 'package:geochat_hunter/restricted_access_data.dart' as RestrictedAccessData;
 
-final String msgClientStarted = 'ClientStarted';
+final String messageClientStarted = 'ClientStarted';
 final double updateWaitTimeout = 0.0;
 
-final _platform = new MethodChannel(RestrictedAccessData.tdChannelName);
+class _RequestInfo {
+    final String key;
+    final Function(Map<String, dynamic>) callback;
+
+    const _RequestInfo(this.key, this.callback);
+}
 
 enum AuthorizationState {
     processing,
@@ -21,58 +27,34 @@ enum AuthorizationState {
 }
 
 class TelegramController {
-    String _appVersion;
-    Function(AuthorizationState) _authorizationStateChanged;
+    // Singleton implementation
+    static final TelegramController _instance = TelegramController._internal();
+    factory TelegramController() => _instance;
+
+    // Internal fields (final)
+    final _platform = MethodChannel(RestrictedAccessData.tdChannelName);
+    // Internal fields
     bool _receivingUpdates;
-    StreamController<String> _updateStreamController;
-    StreamSubscription<String> _updateStreamSubscription;
-    List _requestList;
+    StreamController<Map<String, dynamic>> _updateStreamController;
+    StreamController<AuthorizationState> _authorizationStateStreamController;
+    List<_RequestInfo> _requestList;
     int _requestId;
     int _clientId;
     Lock _lock;
     Directory _appDocDir;
     Directory _appExtDir;
 
-    TelegramController({
-        @required String appVersion,
-        Function(AuthorizationState) authorizationStateChanged
-    }) {
-        _appVersion = appVersion;
-        _authorizationStateChanged = authorizationStateChanged;
+    TelegramController._internal() {
         _receivingUpdates = false;
-        _updateStreamController = new StreamController.broadcast();
-        _requestList = new List();
+        _updateStreamController = StreamController.broadcast();
+        _authorizationStateStreamController = StreamController.broadcast();
+        _requestList = List<_RequestInfo>();
         _requestId = 0;
-        _lock = new Lock();
-        _setAuthorizationState(AuthorizationState.processing);
-        _subscribeToUpdates();
+        _lock = Lock();
         _createClient();
     }
 
-    void _setAuthorizationState(AuthorizationState state) {
-        if (_authorizationStateChanged != null)
-            _authorizationStateChanged(state);
-    }
-
-    void _subscribeToUpdates() {
-        if (_updateStreamController == null)
-            return;
-
-        _updateStreamSubscription = _updateStreamController.stream.listen((String data) {
-            if (data == msgClientStarted) {
-                sendAuthorizationRequest({
-                    '@type': 'getAuthorizationState'
-                });
-                return;
-            }
-            dynamic jsonData = json.decode(data);
-            switch (jsonData['@type']) {
-                // TODO
-            }
-        });
-    }
-
-    Future<void> _createClient() async {
+    Future _createClient() async {
         if (_clientId != null)
             return;
 
@@ -80,15 +62,27 @@ class TelegramController {
             _clientId = await _platform.invokeMethod('clientCreate');
             _appDocDir = await getApplicationDocumentsDirectory();
             _appExtDir = await getExternalStorageDirectory();
-            _updateStreamController.add(msgClientStarted);
-            _startReceive();
+            startReceiveUpdates();
+            sendAuthorizationRequest({
+                '@type': 'getAuthorizationState'
+            });
         } on PlatformException catch (e) {
             print(e);
         }
     }
 
-    Future<void> _startReceive() async {
-        if (_receivingUpdates || _updateStreamController == null)
+    StreamSubscription<Map<String, dynamic>> listenUpdates(void onData(Map<String, dynamic> event),
+        { Function onError, void onDone(), bool cancelOnError }) {
+        return _updateStreamController.stream.listen(onData);
+    }
+
+    StreamSubscription<AuthorizationState> listenAuthorizationState(void onData(AuthorizationState event),
+        { Function onError, void onDone(), bool cancelOnError }) {
+        return _authorizationStateStreamController.stream.listen(onData);
+    }
+
+    Future startReceiveUpdates() async {
+        if (_receivingUpdates == true)
             return;
 
         _receivingUpdates = true;
@@ -102,8 +96,8 @@ class TelegramController {
                     Map<String, dynamic> jsonData = json.decode(result);
                     await _lock.synchronized(() async {
                         for (int i = 0; i < _requestList.length; i++) {
-                            if (_requestList[i][0] == jsonData['@extra']) {
-                                var func = _requestList[i][1];
+                            if (_requestList[i].key == jsonData['@extra']) {
+                                var func = _requestList[i].callback;
                                 if (func != null)
                                     func(jsonData);
                                 _requestList.removeAt(i);
@@ -111,7 +105,7 @@ class TelegramController {
                             }
                         }
                     });
-                    _updateStreamController.add(result);
+                    _updateStreamController.add(jsonData);
                 }
             } on PlatformException catch (e) {
                 print(e);
@@ -120,15 +114,38 @@ class TelegramController {
         });
     }
 
-    void _stopReceive() {
+    void stopReceiveUpdates() {
         _receivingUpdates = false;
     }
 
-    void _checkAuthorization(Map<String, dynamic> receivedData) {
-        debugPrint('AUTH DATA: ' + receivedData.toString());
+    Future sendRequest(Map<String, dynamic> request, Function(Map<String, dynamic>) callback) async {
+        if (callback != null) {
+            await _lock.synchronized(() async {
+                _requestId++;
+                String key = _requestId.toString();
+                request['@extra'] = key;
+                _requestList.add(_RequestInfo(key, callback));
+            });
+        }
+        try {
+            await _platform.invokeMethod('clientSend', {
+                'client': _clientId,
+                'query': json.encode(request)
+            });
+        } on PlatformException catch (e) {
+            print(e);
+        }
+    }
+
+    Future sendAuthorizationRequest(Map<String, dynamic> request) async {
+        return sendRequest(request, _checkAuthorization);
+    }
+
+    Future _checkAuthorization(Map<String, dynamic> receivedData) async {
         final type = receivedData['@type'];
         switch (type) {
             case 'authorizationStateWaitTdlibParameters':
+                final packageInfo = await PackageInfoController().getPackageInfo();
                 sendAuthorizationRequest({
                     '@type': 'setTdlibParameters',
                     'parameters': {
@@ -137,10 +154,10 @@ class TelegramController {
                         'api_hash': RestrictedAccessData.tdAppHash,
                         'device_model': 'Device',
                         'system_version': 'SysVersion',
-                        'application_version': _appVersion,
+                        'application_version': packageInfo.version,
                         'system_language_code': 'en',
                         'database_directory': _appDocDir.path,
-                        'files_directory': _appExtDir.path + '/tg',
+                        'files_directory': _appExtDir.path + '/gch',
                         'use_file_database': true,
                         'use_chat_info_database': true,
                         'use_message_database': true,
@@ -156,14 +173,14 @@ class TelegramController {
                 });
                 break;
             case 'authorizationStateReady':
-                _setAuthorizationState(AuthorizationState.ready);
-                _stopReceive();
+                _authorizationStateStreamController.add(AuthorizationState.ready);
+                stopReceiveUpdates();
                 break;
             case 'authorizationStateWaitPhoneNumber':
-                _setAuthorizationState(AuthorizationState.waitPhoneNumber);
+                _authorizationStateStreamController.add(AuthorizationState.waitPhoneNumber);
                 break;
             case 'authorizationStateWaitCode':
-                _setAuthorizationState(AuthorizationState.waitCode);
+                _authorizationStateStreamController.add(AuthorizationState.waitCode);
                 break;
             case 'ok':
                 sendAuthorizationRequest({
@@ -180,34 +197,9 @@ class TelegramController {
         }
     }
 
-    Future<void> sendRequest(Map<String, dynamic> request, Function(Map<String, dynamic>) callback) async {
-        if (callback != null) {
-            await _lock.synchronized(() async {
-                _requestId++;
-                request['@extra'] = _requestId.toString();
-                _requestList.add([
-                    _requestId.toString(),
-                    callback
-                ]);
-            });
-        }
-        try {
-            await _platform.invokeMethod('clientSend', {
-                'client': _clientId,
-                'query': json.encode(request)
-            });
-        } on PlatformException catch (e) {
-            print(e);
-        }
-    }
-
-    Future<void> sendAuthorizationRequest(Map<String, dynamic> request) async {
-        return sendRequest(request, _checkAuthorization);
-    }
-
     void dispose() {
-        _stopReceive();
-        _updateStreamSubscription.cancel();
+        stopReceiveUpdates();
+        _authorizationStateStreamController.close();
     }
 
 }

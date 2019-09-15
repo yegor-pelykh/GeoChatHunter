@@ -1,13 +1,35 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geochat_hunter/geochat_provider.dart';
 
-class GeoChatsTab extends StatefulWidget {
-    const GeoChatsTab({Key key}) : super(key: key);
+class GeochatsTab extends StatefulWidget {
+    const GeochatsTab({Key key}) : super(key: key);
 
     @override
-    _GeoChatsTabState createState() => _GeoChatsTabState();
+    _GeochatsTabState createState() => _GeochatsTabState();
 }
 
-class _GeoChatsTabState extends State<GeoChatsTab> {
+class _GeochatsTabState extends State<GeochatsTab> {
+    StreamSubscription<List<dynamic>> _geochatListStreamSubscription;
+    List<dynamic> _list;
+
+    _GeochatsTabState() {
+        _subscribeToGeochatListChanging();
+    }
+
+    _setList(List<dynamic> list) {
+        setState(() {
+            _list = list;
+        });
+    }
+
+    _subscribeToGeochatListChanging() async {
+        if (_geochatListStreamSubscription != null)
+            return;
+
+        _setList(await GeochatProvider().getCurrentList());
+        _geochatListStreamSubscription = GeochatProvider().listen(_setList);
+    }
 
     @override
     void initState() {
@@ -21,6 +43,7 @@ class _GeoChatsTabState extends State<GeoChatsTab> {
 
     @override
     void dispose() {
+        _geochatListStreamSubscription.cancel();
         super.dispose();
     }
 

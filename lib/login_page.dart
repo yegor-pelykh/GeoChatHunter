@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geochat_hunter/definitions.dart' as Definitions;
 import 'package:geochat_hunter/telegram_controller.dart';
-import 'definitions.dart' as Definitions;
 
 enum LoginPageMode {
     phone,
@@ -8,17 +8,9 @@ enum LoginPageMode {
 }
 
 class LoginPage extends StatefulWidget {
-    final TelegramController _telegramController;
-    final LoginPageMode _mode;
+    final LoginPageMode mode;
 
-    const LoginPage({
-        Key key,
-        @required TelegramController telegramController,
-        @required LoginPageMode mode
-    }) :
-            _telegramController = telegramController,
-            _mode = mode,
-            super(key: key);
+    const LoginPage({ Key key, @required this.mode }) : super(key: key);
 
     @override
     _LoginPageState createState() => _LoginPageState();
@@ -49,8 +41,8 @@ class _LoginPageState extends State<LoginPage> {
                     filled: true,
                     fillColor: Colors.white,
                     border: UnderlineInputBorder(
-                        borderSide: new BorderSide(color: Colors.white),
-                        borderRadius: new BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(8),
                     ),
                     hintText: 'Phone',
                     contentPadding: EdgeInsets.all(8.0)
@@ -62,10 +54,7 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(8),
                 ),
                 onPressed: () {
-                    final controller = widget._telegramController;
-                    if (controller == null)
-                        return;
-                    controller.sendAuthorizationRequest({
+                    TelegramController().sendAuthorizationRequest({
                         '@type': 'setAuthenticationPhoneNumber',
                         'phone_number': _loginPhoneController.text
                     });
@@ -88,8 +77,8 @@ class _LoginPageState extends State<LoginPage> {
                     filled: true,
                     fillColor: Colors.white,
                     border: UnderlineInputBorder(
-                        borderSide: new BorderSide(color: Colors.white),
-                        borderRadius: new BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(8),
                     ),
                     hintText: 'Code',
                     contentPadding: EdgeInsets.all(8.0)
@@ -101,10 +90,7 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(8),
                 ),
                 onPressed: () {
-                    final controller = widget._telegramController;
-                    if (controller == null)
-                        return;
-                    controller.sendAuthorizationRequest({
+                    TelegramController().sendAuthorizationRequest({
                         '@type': 'checkAuthenticationCode',
                         'code': _loginCodeController.text
                     });
@@ -121,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     List<Widget> getContent() {
-        switch (widget._mode) {
+        switch (widget.mode) {
             case LoginPageMode.phone:
                 return getPhoneContent();
             case LoginPageMode.code:

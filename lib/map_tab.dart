@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:location/location.dart';
 import 'package:latlong/latlong.dart';
-import 'restricted_access_data.dart' as RestrictedAccessData;
+import 'package:geochat_hunter/restricted_access_data.dart' as RestrictedAccessData;
+import 'package:geochat_hunter/position_controller.dart';
 
 final LatLng startPosition = LatLng(0, 0);
 final double startZoom = 12.0;
 final double markerSize = 50.0;
 
 class MapTab extends StatefulWidget {
-    const MapTab({Key key}) : super(key: key);
+    MapTab({Key key}) : super(key: key);
 
     @override
     _MapTabState createState() => _MapTabState();
@@ -36,19 +37,21 @@ class _MapTabState extends State<MapTab> {
         _moveToDeviceLocation();
     }
 
-    Future<void> _moveToDeviceLocation() async {
+    Future _moveToDeviceLocation() async {
         try {
             LocationData data = await _location.getLocation();
             LatLng position = LatLng(data.latitude, data.longitude);
-            setState(() {
-                if (_mapController.ready) {
-                    _mapController.move(position, _mapController.zoom);
-                } else {
+            if (_mapController.ready) {
+                _mapController.move(position, _mapController.zoom);
+            } else {
+                setState(() {
                     _centerPosition = position;
-                }
-                _setMarkerPosition(position);
-            });
-        } on Exception {}
+                });
+            }
+            _setMarkerPosition(position);
+        } on Exception catch (e) {
+            print(e);
+        }
     }
 
     @override
@@ -61,9 +64,7 @@ class _MapTabState extends State<MapTab> {
                     _zoomFactor = position.zoom;
                 },
                 onTap: (LatLng position) {
-                    setState(() {
-                        _setMarkerPosition(position);
-                    });
+                    _setMarkerPosition(position);
                 },
                 center: _centerPosition,
                 zoom: _zoomFactor
@@ -87,7 +88,10 @@ class _MapTabState extends State<MapTab> {
     }
 
     void _setMarkerPosition(LatLng position) {
-        _markerPosition = position;
+        setState(() {
+            _markerPosition = position;
+        });
+        PositionController().setNewPosition(position);
     }
 
     @override
